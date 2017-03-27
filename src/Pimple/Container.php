@@ -37,6 +37,7 @@ class Container implements \ArrayAccess
     private $factories;
     private $protected;
     private $frozen = array();
+    private $unfrozen = array();
     private $raw = array();
     private $keys = array();
 
@@ -77,8 +78,22 @@ class Container implements \ArrayAccess
             throw new \RuntimeException(sprintf('Cannot override frozen service "%s".', $id));
         }
 
+        if (isset($this->unfrozen[$id])) {
+            unset($this->unfrozen[$id]);
+        }
+
         $this->values[$id] = $value;
         $this->keys[$id] = true;
+    }
+
+    /**
+     * @see Container::offsetSet For general description.
+     * In addition to offsetSet, resulting value will not be frozen,
+     * i.e. can be overridden.
+     */
+    public function setUnfrozen($id, $value) {
+        $this->offsetSet($id, $value);
+        $this->unfrozen[$id] = true;
     }
 
     /**
@@ -113,7 +128,9 @@ class Container implements \ArrayAccess
         $val = $this->values[$id] = $raw($this);
         $this->raw[$id] = $raw;
 
-        $this->frozen[$id] = true;
+        if (!isset($this->unfrozen[$id])) {
+            $this->frozen[$id] = true;
+        }
 
         return $val;
     }
